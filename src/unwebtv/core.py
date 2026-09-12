@@ -143,6 +143,7 @@ def download_video(
     show_progress: bool = True,
     quiet: bool = False,
     mux: bool = True,
+    keep_streams: bool = False,
 ) -> Optional[str]:
     """
     Downloads the matching video and audio streams and optionally muxes them.
@@ -181,8 +182,10 @@ def download_video(
                 for s in audio_streams
                 if s["language"].lower() == lang_dict[language].lower()
             ]
-            best_audio = lang_audio[0]
-
+            if lang_audio:
+                best_audio = lang_audio[0]
+            else:
+                best_audio = audio_streams[0]
         else:
             best_audio = lang_audio[0]
 
@@ -191,14 +194,21 @@ def download_video(
             [c for c in data["name"] if c.isalpha() or c.isdigit() or c == " "]
         ).rstrip()
         res_label = f"{best_video['resolution']}p"
-        lang_label = best_audio["language"] if best_audio else "no-audio"
-        base_filename = f"{safe_name}_{lang_label}_{res_label}"
+
+        video_output = f"{safe_name}_{res_label}_video.mp4"
+
+        if best_audio:
+            lang_label = best_audio["language"]
+            audio_output = f"{safe_name}_{lang_label}_audio.mp4"
+            final_output = f"{safe_name}_{lang_label}_{res_label}.mp4"
+        else:
+            audio_output = ""
+            final_output = f"{safe_name}_{res_label}.mp4"
     else:
         base_filename, _ = os.path.splitext(output_filename)
-
-    final_output = f"{base_filename}.mp4"
-    video_output = f"{base_filename}_video.mp4"
-    audio_output = f"{base_filename}_audio.mp4"
+        final_output = f"{base_filename}.mp4"
+        video_output = f"{base_filename}_video.mp4"
+        audio_output = f"{base_filename}_audio.mp4"
 
     def download_stream(stream_url, filename, desc_label):
         if not quiet:
@@ -243,12 +253,19 @@ def download_video(
                 print(f"Download complete: {final_output}")
             return os.path.abspath(final_output)
         finally:
-            if os.path.exists(video_output):
-                os.remove(video_output)
-            if os.path.exists(audio_output):
-                os.remove(audio_output)
+            # Respect the keep_streams flag before deleting
+            if not keep_streams:
+                if os.path.exists(video_output):
+                    os.remove(video_output)
+                if os.path.exists(audio_output):
+                    os.remove(audio_output)
     elif mux and not best_audio:
-        shutil.move(video_output, final_output)
+        # If keeping streams, copy instead of moving so the _video file remains
+        if keep_streams:
+            shutil.copy(video_output, final_output)
+        else:
+            shutil.move(video_output, final_output)
+
         if not quiet:
             print(f"Download complete: {final_output}")
         return os.path.abspath(final_output)
