@@ -1,0 +1,23 @@
+[project]
+name = "unwebtv"
+version = "0.1.0"
+description = "Extract metadata and download videos from UN Web TV."
+readme = "README.md"
+authors = [
+    { name = "Abdullah Saydemir", email = "37012364+saydemr@users.noreply.github.com" }
+]
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "tqdm>=4.60.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project.scripts]
+unwebtv = "unwebtv.cli:main"
