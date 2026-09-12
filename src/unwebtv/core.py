@@ -144,6 +144,7 @@ def download_video(
     quiet: bool = False,
     mux: bool = True,
     keep_streams: bool = False,
+    overwrite: bool = False,
 ) -> Optional[str]:
     """
     Downloads the matching video and audio streams and optionally muxes them.
@@ -210,13 +211,33 @@ def download_video(
         video_output = f"{base_filename}_video.mp4"
         audio_output = f"{base_filename}_audio.mp4"
 
-    def download_stream(stream_url, filename, desc_label):
-        if not quiet:
-            print(f"Downloading Stream: {desc_label}")
-
+    def download_stream(stream_url, filename, desc_label, check_alt_file=None):
         req = Request(stream_url, headers={"User-Agent": "Mozilla/5.0"})
         with urlopen(req) as response:
             total_size = int(response.getheader("Content-Length", 0))
+
+            if not overwrite:
+                if os.path.exists(filename) and os.path.getsize(filename) == total_size:
+                    if not quiet:
+                        print(
+                            f"Skipping {desc_label}: '{filename}' already exists with matching size."
+                        )
+                    return filename
+
+                if (
+                    check_alt_file
+                    and os.path.exists(check_alt_file)
+                    and os.path.getsize(check_alt_file) == total_size
+                ):
+                    if not quiet:
+                        print(
+                            f"Skipping {desc_label}: '{check_alt_file}' already exists with matching size."
+                        )
+                    return check_alt_file
+
+            if not quiet:
+                print(f"Downloading Stream: {desc_label}")
+
             block_size = 1024 * 8
             disable_pbar = not show_progress or quiet
 
@@ -235,41 +256,56 @@ def download_video(
                             break
                         out_file.write(chunk)
                         progress_bar.update(len(chunk))
+        return filename
 
-    # Download tracks
-    download_stream(
-        best_video["url"], video_output, f"Video ({best_video['resolution']}p)"
+    alt_video_file = final_output if not best_audio else None
+
+    actual_video = download_stream(
+        best_video["url"],
+        video_output,
+        f"Video ({best_video['resolution']}p)",
+        check_alt_file=alt_video_file,
     )
+
+    actual_audio = None
     if best_audio:
-        download_stream(
+        actual_audio = download_stream(
             best_audio["url"], audio_output, f"Audio ({best_audio['language']})"
         )
 
-    # Muxing logic
     if mux and best_audio:
         try:
-            mux_streams(video_output, audio_output, final_output, quiet)
+            mux_streams(actual_video, actual_audio, final_output, quiet)
             if not quiet:
                 print(f"Download complete: {final_output}")
             return os.path.abspath(final_output)
         finally:
-            # Respect the keep_streams flag before deleting
             if not keep_streams:
-                if os.path.exists(video_output):
-                    os.remove(video_output)
-                if os.path.exists(audio_output):
-                    os.remove(audio_output)
+                if (
+                    actual_video
+                    and os.path.exists(actual_video)
+                    and actual_video != final_output
+                ):
+                    os.remove(actual_video)
+                if (
+                    actual_audio
+                    and os.path.exists(actual_audio)
+                    and actual_audio != final_output
+                ):
+                    os.remove(actual_audio)
+
     elif mux and not best_audio:
-        # If keeping streams, copy instead of moving so the _video file remains
-        if keep_streams:
-            shutil.copy(video_output, final_output)
-        else:
-            shutil.move(video_output, final_output)
+        if actual_video != final_output:
+            if keep_streams:
+                shutil.copy(actual_video, final_output)
+            else:
+                shutil.move(actual_video, final_output)
 
         if not quiet:
             print(f"Download complete: {final_output}")
         return os.path.abspath(final_output)
+
     else:
         if not quiet:
             print("Muxing bypassed. Streams kept separate.")
-        return os.path.abspath(video_output)
+        return os.path.abspath(actual_video)
