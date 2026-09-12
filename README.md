@@ -4,9 +4,17 @@ A modular Python package and Command Line Interface (CLI) tool for extracting me
 
 ## Features
 * **Metadata Extraction:** Retrieve video names, creation dates, duration, and available stream URLs.
-* **Smart Downloading:** Automatically select the best video stream based on preferred language and resolution.
-* **CLI & Python API:** Use it directly from your terminal or import it as a dependency in your own Python projects.
-* **Progress Tracking:** Terminal progress bars using `tqdm`, with options for silent execution.
+* **Smart Stream Selection:** Evaluates and downloads video (by resolution) and audio (by language) tracks independently to ensure precise matching.
+* **Automatic Muxing:** Automatically merges separated video and audio tracks losslessly using `FFmpeg`.
+* **CLI & Python API:** Use it directly from your terminal or import it as a dependency in your own Python projects
+* **Progress Tracking:** Terminal progress bars using `tqdm`, with options for silent execution
+
+## Prerequisites
+
+To merge downloaded audio and video streams automatically, **FFmpeg** must be installed and accessible via your system's PATH. 
+* **macOS:** `brew install ffmpeg`
+* **Linux (Ubuntu/Debian):** `sudo apt install ffmpeg`
+* **Windows:** Download from [gyan.dev](https://www.gyan.dev/ffmpeg/builds/) or install via Winget: `winget install ffmpeg`
 
 ## Installation
 
@@ -38,7 +46,7 @@ Installing the package automatically adds the `unwebtv` command to your terminal
 unwebtv "https://webtv.un.org/..." --list
 ```
 
-**2. Download with default settings (English, highest resolution up to 1080p):**
+**2. Download with default settings (English, highest resolution up to 1080p, automatically muxed):**
 ```bash
 unwebtv "https://webtv.un.org/..."
 ```
@@ -48,12 +56,17 @@ unwebtv "https://webtv.un.org/..."
 unwebtv "https://webtv.un.org/..." --lang fr --res 720 --out custom_name.mp4
 ```
 
-**4. Disable the progress bar:**
+**4. Download tracks separately (Bypass FFmpeg muxing):**
+```bash
+unwebtv "https://webtv.un.org/..." --no-mux
+```
+
+**5. Disable the progress bar:**
 ```bash
 unwebtv "https://webtv.un.org/..." --no-progress
 ```
 
-**5. Run silently (no terminal output or progress bar):**
+**6. Run silently (no terminal output or progress bar):**
 ```bash
 unwebtv "https://webtv.un.org/..." --quiet
 # or
@@ -69,7 +82,7 @@ from unwebtv import download_video, get_metadata, extract_entry_id
 
 media_url = "https://webtv.un.org/..."
 
-# Example 1: Simple Download (Defaults to English, 1080p, shows progress bar)
+# Example 1: Simple Download (Defaults to English, 1080p, automatic muxing, shows progress bar)
 download_video(media_url)
 
 # Example 2: Download specific stream
@@ -78,10 +91,13 @@ download_video(media_url, language='fr', resolution='720', output_filename='spee
 # Example 3: Download silently (ideal for background scripts/cron jobs)
 download_video(media_url, quiet=True)
 
-# Example 4: Download with output text but no progress bar
+# Example 4: Bypass automatic muxing (saves _video.mp4 and _audio.mp4 separately)
+download_video(media_url, mux=False)
+
+# Example 5: Download with output text but no progress bar
 download_video(media_url, show_progress=False)
 
-# Example 5: Just fetch metadata and URLs without downloading
+# Example 6: Just fetch metadata and URLs without downloading
 entry_id = extract_entry_id(media_url)
 if entry_id:
     metadata = get_metadata(entry_id)

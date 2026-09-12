@@ -1,6 +1,8 @@
 import json
 import os
 import re
+import shutil
+import subprocess
 from datetime import datetime, timedelta
 from typing import Any, Dict, Optional
 from urllib.request import Request, urlopen
@@ -10,6 +12,12 @@ from tqdm import tqdm
 RE_ENTRY_ID = re.compile(
     r"https?://(?:webtv\.|media\.)un\.org/[a-z]{2}/asset/k[a-z\d]+/k([a-z\d]+)"
 )
+
+lang_dict = {
+    "en": "English",
+    "fr": "Français",
+    "og": "Original",
+}
 
 
 def extract_entry_id(url: str) -> Optional[str]:
@@ -95,6 +103,38 @@ def get_metadata(entry_id: str) -> Dict[str, Any]:
     }
 
 
+def mux_streams(
+    video_file: str, audio_file: str, output_file: str, quiet: bool = False
+) -> None:
+    """Merges video and audio streams using FFmpeg."""
+    if not shutil.which("ffmpeg"):
+        raise RuntimeError(
+            "FFmpeg is not installed or not in the system PATH. Muxing requires FFmpeg."
+        )
+
+    if not quiet:
+        print("Muxing video and audio streams...")
+
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_file,
+            "-i",
+            audio_file,
+            "-c:v",
+            "copy",
+            "-c:a",
+            "copy",
+            output_file,
+        ],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=True,
+    )
+
+
 def download_video(
     media_url: str,
     language: str = "en",
@@ -102,10 +142,10 @@ def download_video(
     output_filename: Optional[str] = None,
     show_progress: bool = True,
     quiet: bool = False,
+    mux: bool = True,
 ) -> Optional[str]:
     """
-    Finds the matching stream and downloads it.
-    Can be run silently (quiet=True) or without a progress bar (show_progress=False).
+    Downloads the matching video and audio streams and optionally muxes them.
     """
     entry_id = extract_entry_id(media_url)
     if not entry_id:
@@ -114,66 +154,105 @@ def download_video(
     data = get_metadata(entry_id)
 
     video_streams = [s for s in data["streams"] if s["type"] == "video"]
+    audio_streams = [s for s in data["streams"] if s["type"] == "audio"]
+
     if not video_streams:
         raise ValueError("No video streams found for this URL.")
 
-    lang_streams = [
-        s for s in video_streams if s["language"].lower() == language.lower()
-    ]
-    if not lang_streams:
-        if not quiet:
-            print(f"Warning: Language '{language}' not found. Falling back to default.")
-        lang_streams = video_streams
-
     target_res = int(resolution.replace("p", ""))
-    best_stream = None
+    best_video = next(
+        (s for s in video_streams if s["resolution"] <= target_res), video_streams[0]
+    )
 
-    for stream in lang_streams:
-        if stream["resolution"] <= target_res:
-            best_stream = stream
-            break
+    best_audio = None
+    if audio_streams:
+        lang_audio = [
+            s
+            for s in audio_streams
+            if s["language"].lower() == lang_dict[language].lower()
+        ]
+        if not lang_audio:
+            if not quiet:
+                print(
+                    f"Warning: Language '{language}' not found. Falling back to default."
+                )
+            lang_audio = [
+                s
+                for s in audio_streams
+                if s["language"].lower() == lang_dict[language].lower()
+            ]
+            best_audio = lang_audio[0]
 
-    if not best_stream:
-        best_stream = lang_streams[0]
+        else:
+            best_audio = lang_audio[0]
 
     if not output_filename:
         safe_name = "".join(
             [c for c in data["name"] if c.isalpha() or c.isdigit() or c == " "]
         ).rstrip()
-        res_label = f"{best_stream['resolution']}p"
-        lang_label = best_stream["language"]
-        output_filename = f"{safe_name}_{lang_label}_{res_label}.mp4"
+        res_label = f"{best_video['resolution']}p"
+        lang_label = best_audio["language"] if best_audio else "no-audio"
+        base_filename = f"{safe_name}_{lang_label}_{res_label}"
+    else:
+        base_filename, _ = os.path.splitext(output_filename)
 
-    if not quiet:
-        print(
-            f"Selected Stream: Video ({best_stream['language']}, {best_stream['resolution']}p)"
+    final_output = f"{base_filename}.mp4"
+    video_output = f"{base_filename}_video.mp4"
+    audio_output = f"{base_filename}_audio.mp4"
+
+    def download_stream(stream_url, filename, desc_label):
+        if not quiet:
+            print(f"Downloading Stream: {desc_label}")
+
+        req = Request(stream_url, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(req) as response:
+            total_size = int(response.getheader("Content-Length", 0))
+            block_size = 1024 * 8
+            disable_pbar = not show_progress or quiet
+
+            with open(filename, "wb") as out_file:
+                with tqdm(
+                    total=total_size,
+                    unit="iB",
+                    unit_scale=True,
+                    desc=desc_label,
+                    ascii=True,
+                    disable=disable_pbar,
+                ) as progress_bar:
+                    while True:
+                        chunk = response.read(block_size)
+                        if not chunk:
+                            break
+                        out_file.write(chunk)
+                        progress_bar.update(len(chunk))
+
+    # Download tracks
+    download_stream(
+        best_video["url"], video_output, f"Video ({best_video['resolution']}p)"
+    )
+    if best_audio:
+        download_stream(
+            best_audio["url"], audio_output, f"Audio ({best_audio['language']})"
         )
 
-    req = Request(best_stream["url"], headers={"User-Agent": "Mozilla/5.0"})
-    with urlopen(req) as response:
-        total_size = int(response.getheader("Content-Length", 0))
-        block_size = 1024 * 8
-
-        # Disable tqdm if show_progress is False OR if quiet mode is active
-        disable_pbar = not show_progress or quiet
-
-        with open(output_filename, "wb") as out_file:
-            with tqdm(
-                total=total_size,
-                unit="iB",
-                unit_scale=True,
-                desc=f"Downloading {output_filename}",
-                ascii=True,
-                disable=disable_pbar,
-            ) as progress_bar:
-                while True:
-                    chunk = response.read(block_size)
-                    if not chunk:
-                        break
-                    out_file.write(chunk)
-                    progress_bar.update(len(chunk))
-
-    if not quiet:
-        print("Download complete!")
-
-    return os.path.abspath(output_filename)
+    # Muxing logic
+    if mux and best_audio:
+        try:
+            mux_streams(video_output, audio_output, final_output, quiet)
+            if not quiet:
+                print(f"Download complete: {final_output}")
+            return os.path.abspath(final_output)
+        finally:
+            if os.path.exists(video_output):
+                os.remove(video_output)
+            if os.path.exists(audio_output):
+                os.remove(audio_output)
+    elif mux and not best_audio:
+        shutil.move(video_output, final_output)
+        if not quiet:
+            print(f"Download complete: {final_output}")
+        return os.path.abspath(final_output)
+    else:
+        if not quiet:
+            print("Muxing bypassed. Streams kept separate.")
+        return os.path.abspath(video_output)

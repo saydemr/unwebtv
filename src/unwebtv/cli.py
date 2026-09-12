@@ -30,6 +30,12 @@ def main():
         action="store_true",
         help="Suppress all terminal output (implies --no-progress)",
     )
+    # Add this alongside your other parser.add_argument calls
+    parser.add_argument(
+        "--no-mux",
+        action="store_true",
+        help="Download video and audio streams separately without muxing",
+    )
 
     args = parser.parse_args()
 
@@ -72,6 +78,7 @@ def main():
                 output_filename=args.out,
                 show_progress=not args.no_progress,
                 quiet=args.quiet,
+                mux=not args.no_mux,
             )
         except Exception as e:
             if not args.quiet:
