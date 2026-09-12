@@ -61,12 +61,22 @@ unwebtv "https://webtv.un.org/..." --lang fr --res 720 --out custom_name.mp4
 unwebtv "https://webtv.un.org/..." --no-mux
 ```
 
-**5. Disable the progress bar:**
+**5. Keep original video and audio tracks after muxing:**
+```bash
+unwebtv "https://webtv.un.org/..." --keep-streams
+```
+
+**6. Force overwrite (ignore matching file sizes on disk):**
+```bash
+unwebtv "https://webtv.un.org/..." --overwrite
+```
+
+**7. Disable the progress bar:**
 ```bash
 unwebtv "https://webtv.un.org/..." --no-progress
 ```
 
-**6. Run silently (no terminal output or progress bar):**
+**8. Run silently (no terminal output or progress bar):**
 ```bash
 unwebtv "https://webtv.un.org/..." --quiet
 # or
@@ -94,10 +104,13 @@ download_video(media_url, quiet=True)
 # Example 4: Bypass automatic muxing (saves _video.mp4 and _audio.mp4 separately)
 download_video(media_url, mux=False)
 
-# Example 5: Download with output text but no progress bar
-download_video(media_url, show_progress=False)
+# Example 5: Keep the raw audio/video files alongside the muxed output
+download_video(media_url, keep_streams=True)
 
-# Example 6: Just fetch metadata and URLs without downloading
+# Example 6: Force overwrite if a file with matching size already exists
+download_video(media_url, overwrite=True)
+
+# Example 7: Just fetch metadata and URLs without downloading
 entry_id = extract_entry_id(media_url)
 if entry_id:
     metadata = get_metadata(entry_id)
