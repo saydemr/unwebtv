@@ -15,8 +15,8 @@ RE_ENTRY_ID = re.compile(
 
 lang_dict = {
     "en": "English",
-    "fr": "Français",
-    "og": "Original",
+    "fr": "French",
+    "og": "Interlingua",
 }
 
 
