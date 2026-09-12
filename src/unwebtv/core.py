@@ -191,9 +191,13 @@ def download_video(
             best_audio = lang_audio[0]
 
     if not output_filename:
-        safe_name = "".join(
-            [c for c in data["name"] if c.isalpha() or c.isdigit() or c == " "]
-        ).rstrip()
+        safe_name = (
+            "".join(
+                [c for c in data["name"] if c.isalpha() or c.isdigit() or c == " "]
+            ).rstrip()
+            + "_"
+            + data["created_at"].strftime("%m%d%y-%H%M%S")
+        )
         res_label = f"{best_video['resolution']}p"
 
         video_output = f"{safe_name}_{res_label}_video.mp4"
