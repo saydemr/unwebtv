@@ -633,6 +633,8 @@ the "copyright" line and a pointer to where the full notice is found.
 
     unwebtv: extract metadata and download videos from United Nations WEB TV.
     unwebtv              Copyright (C) 2026 saydemr
+
+    This file contains code adapted from
     un-web-tv-downloader Copyright (C) 2023 NiceLabs
 
     This program is free software: you can redistribute it and/or modify
@@ -654,6 +656,8 @@ Also add information on how to contact you by electronic and paper mail.
 notice like this when it starts in an interactive mode:
 
     unwebtv              Copyright (C) 2026 saydemr
+
+    This file contains code adapted from
     un-web-tv-downloader Copyright (C) 2023 NiceLabs
 
     This program comes with ABSOLUTELY NO WARRANTY; for details type `show w'.
@@ -675,3 +679,10 @@ may consider it more useful to permit linking proprietary applications with
 the library.  If this is what you want to do, use the GNU Lesser General
 Public License instead of this License.  But first, please read
 <https://www.gnu.org/licenses/why-not-lgpl.html>.
+
+Additional Terms under GPLv3 Section 7:
+In accordance with Section 7(b) of the GNU General Public License version 3,
+any modified or unmodified redistribution of this software, as well as any 
+use or reference of this software in academic research, legal contexts 
+(including United Nations documentation), or official publications, must 
+retain clear author attribution and cite the original repository.

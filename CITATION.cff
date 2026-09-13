@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: "If you use this software in academic research, publications, or legal contexts, please cite it using the following metadata."
+title: "unwebtv"
+authors:
+  - family-names: "Saydemir"
+    given-names: "A"
+version: 0.1.0"
+date-released: "2026-09-13"
+url: "https://github.com/saydemr/unwebtv"
+repository-code: "https://github.com/saydemr/unwebtv"
+license: "GPL-3.0-or-later"
+
+references:
+  - type: software
+    title: "un-web-tv-downloader"
+    authors:
+      - name: "NiceLabs"
+    repository-code: "https://github.com/NiceLabs/un-web-tv-downloader"
+    notes: "Parts of the code were adapted from this repository."

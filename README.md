@@ -118,6 +118,26 @@ if entry_id:
     print(f"Available streams: {len(metadata['streams'])}")
 ```
 
+## License & Required Citation
+
+This project is licensed under the GPLv3. Pursuant to Section 7(b) of the GPLv3, author attribution is strictly required if this software is used, modified, or referenced in academic research, legal documentation, or official publications. 
+
+Please cite this repository using the following format:
+
+**APA Format:**
+> Saydemir, A. (2026). unwebtv (Version 0.1.0) [Computer software]. https://github.com/saydemr/unwebtv
+
+**BibTeX:**
+```bibtex
+@software{unwebtv_2026,
+  author = {Saydemir, A},
+  title = {unwebtv},
+  url = {https://github.com/saydemr/unwebtv},
+  version = {0.1.0},
+  year = {2026}
+}
+```
+
 ## Acknowledgments
 
 This project is a refactored and modularized derivative of the [un-web-tv-downloader](https://github.com/NiceLabs/un-web-tv-downloader) created by [NiceLabs](https://github.com/NiceLabs). 
@@ -127,6 +147,8 @@ This project is a refactored and modularized derivative of the [un-web-tv-downlo
 This project is licensed under the **GNU General Public License v3.0 (GPL-3.0)**. 
 
 * Copyright (c) 2026 saydemr (Modifications, CLI, and package structure)
+
+This file contains code adapted from un-web-tv-downloader
 * Copyright (c) 2023 NiceLabs (Original core extraction logic)
 
 You may freely use, modify, and distribute this software, provided that any derivative works are also open-source and licensed under GPL-3.0. See the `LICENSE` file for more details.
